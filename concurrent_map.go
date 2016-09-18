@@ -44,7 +44,7 @@ func (m ConcurrentMap) ShardCount() int {
 }
 
 // MSet adds multiple key value pairs at once.
-func (m ConcurrentMap) MSet(data map[string]interface{}) {
+func (m *ConcurrentMap) MSet(data map[string]interface{}) {
 	for key, value := range data {
 		shard := m.GetShard(key)
 		shard.Lock()
@@ -93,7 +93,7 @@ func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
 }
 
 // Get retrieves the element from the map under the given key.
-func (m ConcurrentMap) Get(key string) (interface{}, bool) {
+func (m *ConcurrentMap) Get(key string) (interface{}, bool) {
 	// Get shard
 	shard := m.GetShard(key)
 	shard.RLock()
@@ -209,7 +209,7 @@ func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 }
 
 // Items returns all items as map[string]interface{}.
-func (m ConcurrentMap) Items() map[string]interface{} {
+func (m *ConcurrentMap) Items() map[string]interface{} {
 	tmp := make(map[string]interface{})
 
 	// Insert items to temporary map.
@@ -271,8 +271,8 @@ func (m ConcurrentMap) Keys() []string {
 // This is the only way to transform the map data into JSON because all items are held in a
 // private and mutex-protected map that json.Marshal does not see.
 // Note: this can be very expensive.
-func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
-	// Create a temporary map, which will hold all item spread across shards.
+func (m *ConcurrentMap) MarshalJSON() ([]byte, error) {
+	// create a temporary map that will hold all items spread across shards
 	tmp := make(map[string]interface{})
 
 	// Insert items to temporary map.
