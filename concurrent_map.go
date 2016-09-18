@@ -55,7 +55,6 @@ func (m *ConcurrentMap) MSet(data map[string]interface{}) {
 
 // Set sets the value under the specified key.
 func (m *ConcurrentMap) Set(key string, value interface{}) {
-	// Get map shard.
 	shard := m.GetShard(key)
 	shard.Lock()
 	shard.items[key] = value
@@ -254,7 +253,6 @@ func (m *ConcurrentMap) MarshalJSON() ([]byte, error) {
 	// create a temporary map that will hold all items spread across shards
 	tmp := make(map[string]interface{})
 
-	// Insert items to temporary map.
 	for item := range m.IterBuffered() {
 		tmp[item.Key] = item.Val
 	}
