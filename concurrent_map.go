@@ -159,29 +159,8 @@ type Tuple struct {
 }
 
 // Iter returns an iterator which could be used in a for range loop.
-//
-// Deprecated: using IterBuffered() will get a better performence
 func (m ConcurrentMap) Iter() <-chan Tuple {
-	ch := make(chan Tuple)
-	go func() {
-		wg := sync.WaitGroup{}
-		wg.Add(SHARD_COUNT)
-		// Foreach shard.
-		for _, shard := range m {
-			go func(shard *ConcurrentMapShared) {
-				// Foreach key, value pair.
-				shard.RLock()
-				for key, val := range shard.items {
-					ch <- Tuple{key, val}
-				}
-				shard.RUnlock()
-				wg.Done()
-			}(shard)
-		}
-		wg.Wait()
-		close(ch)
-	}()
-	return ch
+	return m.IterBuffered()
 }
 
 // IterBuffered returns a buffered iterator which could be used in a for range loop.
