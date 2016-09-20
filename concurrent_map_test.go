@@ -21,6 +21,31 @@ func TestMapCreation(t *testing.T) {
 	if m.Count() != 0 {
 		t.Error("new map should be empty.")
 	}
+
+	if m.ShardCount() != defaultShardCount {
+		t.Errorf("new map should have the default number of shards (%+v) but has %+v shards", defaultShardCount, m.ShardCount())
+	}
+}
+
+func TestMapCreationWithCustomShardCount(t *testing.T) {
+	shardCount := 15
+	m := New(shardCount)
+	if m == nil {
+		t.Error("map is null.")
+	}
+	if m.ShardCount() != shardCount {
+		t.Errorf("new map should have the number of shards provided at map creation time (%+v) but has %+v shards", shardCount, m.ShardCount())
+	}
+}
+
+func TestMapCreationPanicsWhenPassingMoreThanOneShardCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("New() should have panicked but it didn't!")
+		}
+	}()
+
+	New(1, 2)
 }
 
 func TestInsert(t *testing.T) {
@@ -335,12 +360,9 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	SHARD_COUNT = 2
-	defer func() {
-		SHARD_COUNT = 32
-	}()
+	shardCount := 2
 	expected := "{\"a\":1,\"b\":2}"
-	m := New()
+	m := New(shardCount)
 	m.Set("a", 1)
 	m.Set("b", 2)
 	j, err := json.Marshal(m)
