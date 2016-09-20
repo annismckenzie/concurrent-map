@@ -34,6 +34,17 @@ func BenchmarkAll(b *testing.B) {
 	}
 }
 
+func BenchmarkHighParallelism(b *testing.B) {
+	var (
+		shardCount  = 32
+		name        = "MultiGetSetBlockEveryPromilleParallelism1000"
+		parallelism = 1000
+	)
+	b.Run(name+",Shards="+strconv.Itoa(shardCount)+",Parallel=yes", func(b *testing.B) {
+		benchmarkMultiGetSetBlockEveryPromilleConcurrently(b, New(shardCount), parallelism)
+	})
+}
+
 var benchmarks = map[string]benchmarkDefinition{
 	"SingleInsertAbsent":   benchmarkDefinition{NonParallelFunc: benchmarkSingleInsertAbsent, ParallelFunc: benchmarkSingleInsertAbsentConcurrently, Parallelism: 100},
 	"SingleInsertPresent":  benchmarkDefinition{NonParallelFunc: benchmarkSingleInsertPresent, ParallelFunc: benchmarkSingleInsertPresentConcurrently, Parallelism: 100},
@@ -214,6 +225,32 @@ func benchmarkMultiGetSetBlockConcurrently(b *testing.B, m protectedMapper, para
 		i := 0
 		for pb.Next() {
 			set(strconv.Itoa(i%100), "value")
+			get(strconv.Itoa(i%100), "value")
+			i++
+		}
+	})
+	b.StopTimer()
+	for i := 0; i < 2*b.N; i++ {
+		<-finished
+	}
+}
+
+func benchmarkMultiGetSetBlockEveryPromilleConcurrently(b *testing.B, m protectedMapper, parallelism int) {
+	finished := make(chan struct{}, 2*b.N)
+	get, set := getSet(m, finished)
+	for i := 0; i < b.N; i++ {
+		m.Set(strconv.Itoa(i%100), "value")
+	}
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			if i%parallelism == 0 {
+				set(strconv.Itoa(i%100), "value")
+			} else {
+				finished <- struct{}{}
+			}
 			get(strconv.Itoa(i%100), "value")
 			i++
 		}
